@@ -3,9 +3,9 @@ const Git = require('nodegit');
 const path = require('path');
 
 // CONFIGURATION
-const BUILD_DIR = './sample-app'; // the build will be executed in this directory, which is relative to the repo root
+const REPO_URL = 'https://github.com/jchorl/sample-react-app'; // the repo to clone
+const BUILD_DIR = './'; // the build will be executed in this directory, which is relative to the repo root
 const BUILD_CMD = 'npm run build'; // the command to execute the build
-const REPO_URL = 'https://github.com/jchorl/buildserverless'; // the repo to clone
 
 function downloadSource() {
     return Git.Clone(REPO_URL, '/tmp/app');
