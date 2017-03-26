@@ -20,7 +20,7 @@ exports.build = function build(req, res) {
         });
 
         console.log('Build completed. Output:');
-        console.log(output);
+        console.log(output.toString('utf8'));
         console.log('My work here is done. Returning.');
         res.status(200).end();
     });
