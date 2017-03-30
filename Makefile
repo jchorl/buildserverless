@@ -3,7 +3,7 @@ emulate:
 		--name buildserverless-emulate \
 		-v $(PWD):/buildserverless \
 		-w /buildserverless \
-		jchorl/buildserverless sh -c 'echo buildserverless | functions start; functions deploy build --trigger-http; bash'
+		jchorl/buildserverless sh -c 'echo buildserverless | functions start; functions deploy run --trigger-http; bash'
 
 build:
 	docker image build -t jchorl/buildserverless .
