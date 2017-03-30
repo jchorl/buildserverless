@@ -8,19 +8,18 @@ const storage = require('@google-cloud/storage');
 // STEPS
 // download source
 // execute build
-// package up build outputs
-// onPackageComplete
+// package up build output
+// execute onPackageComplete
 
 // CONFIGURATION
 const REPO_URL = 'https://github.com/jchorl/sample-react-app'; // the source repo to clone
 const BUILD_DIR = './'; // the build will be executed in this directory, which is relative to the repo root
 const BUILD_CMD = 'npm run build'; // the command to execute the build
-const OUTPUT_DIR = './build'; // the output directory that should be pushed to the GCS bucket, relative to the repo root
-const OUTPUT_BUCKET = 'buildserverless-builds'; // OUTPUT_DIR will be pushed here on build completion
+const OUTPUT_DIR = './build'; // the output directory that should be zipped, relative to the repo root
+const OUTPUT_BUCKET = 'buildserverless-builds'; // the packaged zip will be pushed to this GCS bucket on build completion
 
 exports.run = function run(req, res) {
     downloadSource().then(() => {
-        console.log('Source code downloaded\n');
         build();
         packageBuild((filename) => {
             uploadPackage(filename).then(() => {
@@ -83,9 +82,9 @@ function packageBuild(callback) {
     archive.finalize();
 }
 
-// uploadPackage uploads the packaged build
+// uploadPackage uploads the packaged build to GCS bucket OUTPUT_BUCKET
 function uploadPackage(filename) {
-    console.log('Pushing results');
+    console.log('Pushing packaged build');
     let gcs = storage({
         projectId: 'buildserverless',
         keyFilename: path.join(__dirname, './credentials.json')
