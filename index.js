@@ -18,7 +18,7 @@ const BUILD_CMD = 'npm run build'; // the command to execute the build
 const OUTPUT_DIR = './build'; // the output directory that should be zipped, relative to the repo root
 const OUTPUT_BUCKET = 'buildserverless-builds'; // the packaged zip will be pushed to this GCS bucket on build completion
 
-exports.run = function run(req, res) {
+exports.buildserverless = function buildserverless(req, res) {
     downloadSource().then(() => {
         build();
         packageBuild((filename) => {
