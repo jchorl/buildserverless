@@ -12,8 +12,8 @@ const GITHUB_USERNAME = 'jchorl';
 const REPO_NAME = 'sample-react-app';
 const BUILD_DIR = './'; // the build will be executed in this directory, which is relative to the repo root
 const BUILD_CMD = 'npm run build'; // the command to execute the build
-const OUTPUT_DIR = './build'; // the output directory that should be zipped, relative to the repo root
-const OUTPUT_BUCKET = 'buildserverless-builds'; // the packaged zip will be pushed to this GCS bucket on build completion
+const OUTPUT_DIR = './build'; // the output directory that should be gzipped, relative to the repo root
+const OUTPUT_BUCKET = 'buildserverless-builds'; // the gzipped tarball will be pushed to this GCS bucket on build completion
 
 exports.buildserverless = function buildserverless(req, res) {
     // download the source code
@@ -37,20 +37,20 @@ exports.buildserverless = function buildserverless(req, res) {
 // downloadSource downloads the source code into /tmp/app
 function downloadSource(callback) {
     console.log('Downloading source code');
-    githubClone(callback);
+
+    // helper function to clone from github
+    githubClone('/tmp/app', callback);
 }
 
 // build executes the build in /tmp/app/BUILD_DIR
 function build() {
     let fullBuildDir = path.join('/tmp/app', BUILD_DIR);
     console.log('Executing build');
-    let output = execSync(BUILD_CMD, {
+    cmd(BUILD_CMD, {
         cwd: fullBuildDir
     });
 
-    console.log('Build completed. Output:');
-    console.log(output.toString('utf8'));
-    console.log();
+    console.log('Build completed');
 }
 
 // packageBuild packages the build into a tarball
@@ -58,10 +58,11 @@ function packageBuild(callback) {
     console.log('Packaging up build');
     let filename = `/tmp/build-${(new Date).getTime()}.tar.gz`;
 
-    fstream.Reader('/tmp/app/build')
-        .pipe(tar.Pack())
-        .pipe(zlib.createGzip({ level: 9 }))
-        .pipe(fs.createWriteStream(filename))
+    let fullBuildDir = path.join('/tmp/app', BUILD_DIR);
+    fstream.Reader(fullBuildDir)
+        .pipe(tar.Pack()) // tar it
+        .pipe(zlib.createGzip({ level: 9 })) // gzip it
+        .pipe(fs.createWriteStream(filename)) // write it
         .on('finish', () => {
             callback(filename);
         });
@@ -70,6 +71,8 @@ function packageBuild(callback) {
 // uploadPackage uploads the packaged build to GCS bucket OUTPUT_BUCKET
 function uploadPackage(filename) {
     console.log('Pushing packaged build');
+
+    // open connection to GCS using credentials.json and push
     let gcs = storage({
         projectId: 'buildserverless',
         keyFilename: path.join(__dirname, './credentials.json')
@@ -78,9 +81,9 @@ function uploadPackage(filename) {
     return bucket.upload(filename, { gzip: false }); // don't use gzip because the tarball is already gzipped
 }
 
-// githubClone clones a repo from Github
-// most node Git clients don't work on Cloud Functions due to git dependencies, so do it manually
-function githubClone(callback) {
+// githubClone clones a repo (GITHUB_USERNAME/REPO_NAME) from Github
+// most node Git clients don't work on Cloud Functions due to git dependencies, so do it manually :(
+function githubClone(clonePath, callback) {
     let url = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/tarball/master`;
     let options = {
         url,
@@ -95,11 +98,29 @@ function githubClone(callback) {
             }
 
             res
-                .pipe(zlib.createGunzip())
-                .pipe(tar.Extract({ path: '/tmp/app', strip: 1 }))
+                .pipe(zlib.createGunzip()) // un-gzip
+                .pipe(tar.Extract({ path: clonePath, strip: 1 })) // extract tarball
                 .on('finish', callback);
         })
         .on('error', err => {
             throw err
         });
+}
+
+// cmd executes a command with options
+function cmd(command, options) {
+    let separator = process.platform === "win32" ? ";" : ":";
+
+    // add node and npm executables to $PATH
+    let env = Object.assign({}, process.env);
+    env.PATH = path.resolve("/nodejs/bin") + separator + env.PATH;
+
+    // merge in options param
+    options = Object.assign({ env }, options);
+
+    // execute the command
+    let output = execSync(command, options);
+    console.log('Output:');
+    console.log(output.toString('utf8'));
+    console.log();
 }

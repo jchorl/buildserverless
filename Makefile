@@ -12,7 +12,7 @@ deploy:
 	docker container run -it --rm \
 		-v $(PWD):/buildserverless \
 		-w /buildserverless \
-		jchorl/buildserverless sh -c 'gcloud auth login; gcloud config set project buildserverless; gcloud beta functions deploy buildserverless --stage-bucket buildserverless-cloud-function --trigger-http'
+		jchorl/buildserverless sh -c 'gcloud auth login; gcloud config set project buildserverless; gcloud beta functions deploy buildserverless --stage-bucket buildserverless-cloud-function --trigger-http --memory=2048MB --timeout=200s'
 
 node:
 	docker container run -it --rm \
