@@ -74,10 +74,10 @@ function packageBuild(callback) {
     console.log('Packaging up build');
     let filename = `/tmp/build-${(new Date).getTime()}.tar.gz`;
 
-    let fullBuildDir = path.join('/tmp/app', BUILD_DIR);
-    fstream.Reader(fullBuildDir)
+    let fullOutputDir = path.join('/tmp/app', OUTPUT_DIR);
+    fstream.Reader(fullOutputDir)
         .pipe(tar.Pack()) // tar it
-        .pipe(zlib.createGzip({ level: 9 })) // gzip it
+        .pipe(zlib.createGzip({ level: 1 })) // gzip it
         .pipe(fs.createWriteStream(filename)) // write it
         .on('finish', () => {
             callback(filename);
