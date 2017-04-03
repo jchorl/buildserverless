@@ -19,6 +19,9 @@ exports.buildserverless = function buildserverless(req, res) {
     // download the source code
     downloadSource(() => {
 
+        // install node deps
+        install();
+
         // build the project
         build();
 
@@ -40,6 +43,19 @@ function downloadSource(callback) {
 
     // helper function to clone from github
     githubClone('/tmp/app', callback);
+}
+
+function install() {
+    let fullBuildDir = path.join('/tmp/app', BUILD_DIR);
+    console.log('Executing install');
+    cmd('npm install', {
+        cwd: fullBuildDir,
+        env: {
+            NODE_ENV: "" // this will install dev dependencies too
+        }
+    });
+
+    console.log('Install completed');
 }
 
 // build executes the build in /tmp/app/BUILD_DIR
@@ -112,8 +128,11 @@ function cmd(command, options) {
     let separator = process.platform === "win32" ? ";" : ":";
 
     // add node and npm executables to $PATH
-    let env = Object.assign({}, process.env);
+    let env = Object.assign({}, process.env, options.env);
     env.PATH = path.resolve("/nodejs/bin") + separator + env.PATH;
+
+    // delete env from options since it has already been handled
+    delete options.env;
 
     // merge in options param
     options = Object.assign({ env }, options);
